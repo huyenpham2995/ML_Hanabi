@@ -5,6 +5,7 @@ import numpy as np
 import load_data
 import functional_model
 import train
+import gin
 import evaluate
 from utils import parse_args, dir_utils
 from tensorflow.keras.layers import Input, Dense, Flatten
@@ -30,6 +31,11 @@ def main():
     args = parse_args.parse()
     args.datapath = DATAPATH + "/data/Hanabi-Full_2_6_150.pkl"
     args = parse_args.resolve_datapath(args)
+
+    #gin external
+        gin.external_configurable(tf.keras.optimizers.Adam, module='tensorflow.keras.optimizers')
+    gin.external_configurable(tf.keras.losses.mean_squared_error, module='tensorflow.keras.losses')
+    gin.parse_config_file('mlp.config.gin')
 
     #create/load data
     '''
