@@ -28,15 +28,17 @@ class Dataset(object):
         self.num_players = num_players
         self.num_unique_agents = num_unique_agents
         self.num_games = num_games
-
+        
         self.train_data = {} # gameplay data given to model
         self.validation_data = {} # data not given to model, from same agents as train
         self.test_data = {} # data from agents totally unseen to model
-        
+        self.test_agent = None
+
     def read(self, raw_data):
         # split up raw_data into train, validation, and test
-        test_agent = random.choice(list(raw_data.keys()))
-
+        #test_agent = random.choice(list(raw_data.keys()))
+        
+        '''
         for agent in raw_data:
             if agent == test_agent:
                 continue
@@ -45,20 +47,30 @@ class Dataset(object):
             self.validation_data[agent] = raw_data[agent][split_idx:]
         
         self.test_data[test_agent] = raw_data[test_agent]
+        '''
+        for agent in raw_data:
+            split_idx1 = int(0.8 * (len(raw_data[agent])-100))
+            self.train_data[agent] = raw_data[agent][:split_idx1]
+            split_idx2 = split_idx1 + int(0.2 * (len(raw_data[agent])-100))
+            self.validation_data[agent] = raw_data[agent][split_idx1:split_idx2]
+            self.test_data[agent] = raw_data[agent][len(raw_data[agent])-100:]
 
-
-    def generator(self, batch_type='train', shuffle='false'):
+    @gin.configurable
+    def generator(self, batch_type='train', shuffle='false',agent=None):
+        NUM_ADHOC_GAMES = self.num_games
         if batch_type == 'train':
             data_bank = self.train_data
         elif batch_type == 'validation':
             data_bank = self.validation_data
         elif batch_type == 'test':
             data_bank = self.test_data
+            NUM_ADHOC_GAMES = 100
         
+        self.test_agent = agent
         # data_bank: [AgentName][num_games][0 = 
         #         obs_vec, 1 = act_vec][game_step][index into vec]
         #List of all agents. We chose randomely 1 agent
-        agent = random.choice(list(data_bank.keys()))
+        #agent = random.choice(list(data_bank.keys()))
         #10 ad_hoc games which were played by agent
         adhoc_games = [random.choice(list(data_bank[agent])) 
                 for _ in range(NUM_ADHOC_GAMES)]
@@ -71,7 +83,6 @@ class Dataset(object):
         adhoc_games = [[adhoc_games[i][0][l] + adhoc_games[i][1][l] 
                        for l in range(game_lengths[i])] 
                        for i in range(NUM_ADHOC_GAMES)]
-        
         # assemble generated agent observations and actions into x and y array
         # NUM_TOTAL_MOVES is the sum of the length of all 10 adhoc_games (total number of 
         # observations/actions throughout all 10 games
@@ -126,7 +137,7 @@ def main(args):
     
     data.read(raw_data)
     
-    #import pdb; pdb.set_trace()
+   # import pdb; pdb.set_trace()
     return data
 
 

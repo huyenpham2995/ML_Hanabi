@@ -1,0 +1,41 @@
+import create_data
+import load_data
+import train
+import build_model
+
+# configure the data creator/loader
+load_data.Dataset.game_type = 'Hanabi-Full'
+load_data.Dataset.num_players = 2
+load_data.Dataset.num_unique_agents = 1
+load_data.Dataset.num_games = 10
+
+# load specific agent for testing
+load_data.generator.agent='rainbow_agent_1'
+
+# configure trainer optimizer
+train.Trainer.optimizer = @keras.optimizers.Adam()
+keras.optimizers.Adam.lr=0.001
+keras.optimizers.Adam.beta_1=0.9
+keras.optimizers.Adam.beta_2=0.999
+keras.optimizers.Adam.epsilon=None
+keras.optimizers.Adam.decay=0.0
+keras.optimizers.Adam.amsgrad=False
+
+# configure trainer vars
+train.Trainer.loss = 'categorical_crossentropy'
+train.Trainer.metrics = ['accuracy']
+train.Trainer.batch_size = 1
+train.Trainer.epochs = 10
+train.Trainer.steps_per_epoch = 1
+train.Trainer.validation_steps = 1
+
+# configure the network
+build_model.build_model.obs_size = 658
+build_model.build_model.num_hidden_nodes = [560,480,320.256,128,64]
+build_model.build_model.hidden_activation = @keras.layers.LeakyReLU()
+build_model.build_model.out_layer_nodes = 20
+build_model.build_model.out_activation = 'softmax'
+build_model.build_model.dropout_rate = 0.2
+
+
+# TODO: configure the evaluator

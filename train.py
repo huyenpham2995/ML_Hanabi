@@ -2,48 +2,68 @@ from utils import parse_args
 import importlib
 import load_data
 import gin
+import build_model
 import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Input, Dense, Flatten
-from tensorflow.keras.models import Model
+from keras import losses
 
-def set_up_vars():
-    activations = ['relu', 'softmax']
-    num_hidden_nodes = [256,128,64,20]
-    optimizer=Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
-    loss ='mean_squared_error'
-    metrics=['accuracy']
-    epochs=100
-    batch_size=32
-    
-    return activations, num_hidden_nodes, optimizer, loss, metrics, epochs, batch_size
+@gin.configurable
+class Trainer(object):
+    @gin.configurable
+    def __init__(self, args,
+                optimizer = None,
+                 loss=None,
+                 metrics=None,
+                 batch_size=None,
+                 epochs=None,
+                 steps_per_epoch=None,
+                 validation_steps=None):
+        self.optimizer = optimizer
+        self.loss = loss
+        self.metrics = metrics
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.steps_per_epoch = steps_per_epoch
+        self.validation_steps = validation_steps
+
+def print_info(trainer):
+    print("----------TRAINING MODEL---------")
+    print("optimizer = ", trainer.optimizer)
+    print("optimizer learning rate = ", trainer.optimizer.lr)
+    print("optimizer beta_1 = ", trainer.optimizer.beta_1)
+    print("optimizer beta_2 = ", trainer.optimizer.beta_2)
+    print("optimizer epsilon = ", trainer.optimizer.epsilon)
+    print("optimizer decay = ", trainer.optimizer.decay)
+    print("optimizer amsgrad = ", trainer.optimizer.amsgrad)
+    print("loss = ", trainer.loss)
+    print("metrics = ", trainer.metrics)
+    print("batch_size = ", trainer.batch_size)
+    print('epochs = ', trainer.epochs)
+    print('steps_per_epoch = ', trainer.steps_per_epoch)
+    print('validation_steps = ', trainer.validation_steps)
+
 
 def main(train_obs, train_act, valid_obs, valid_act, args):
-    print("---------CREATING MODEL--------")
+    trainer = Trainer(args) 
+    #creating model
+    model = build_model.build_model()
     
-    #get the training data and validation data
-    activations, num_hidden_nodes, optimizer, loss, metrics, epochs, batch_size = set_up_vars()
-     
-    # creating layers for model and linking them
-    input_layer = Input(shape=(len(train_obs[0]),))
-    hidden_layer = Dense(num_hidden_nodes[0], activation=activations[0])(input_layer)
-    for i in range(1,len(num_hidden_nodes)-1):
-        hidden_layer = Dense(num_hidden_nodes[i], activation=activations[0])(hidden_layer)
-    flatten_layer = Flatten()(hidden_layer)
-    output_layer = Dense(num_hidden_nodes[len(num_hidden_nodes)-1], activation = activations[len(activations)-1])(flatten_layer)
-    model = Model(inputs=input_layer, outputs=output_layer)
+    # printing training info
+    print_info(trainer)
 
     # compiling model
-    model.compile(optimizer=optimizer,
-            loss=loss,
-            metrics=metrics)
-
-    print("----------TRAINING MODEL---------")
+    model.compile(
+        optimizer = trainer.optimizer,
+        loss = trainer.loss,
+        metrics = trainer.metrics)
+    
     # training model
-    tr_history = model.fit(train_obs,train_act,
-            epochs=epochs,
-            verbose=1,
-            validation_data=(valid_obs, valid_act))
+    tr_history = model.fit(train_obs, train_act,
+            epochs = trainer.epochs,
+            verbose = 1,
+            validation_data=(valid_obs,valid_act),
+            steps_per_epoch = trainer.steps_per_epoch,
+            validation_steps = trainer.validation_steps)
+            
 
     return model
 
